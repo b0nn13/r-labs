@@ -1,0 +1,149 @@
+---
+title: "Baixando dados da B3"
+author: "Lab Finance"
+date: ""
+output: pdf_document
+---
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+# Adicionando biblioteca GetDFPData
+if("GetDFPData" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("GetDFPData")
+}
+
+# Adicionando biblioteca tidyverse
+if("tidyverse" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("tidyverse")
+}
+
+# Adicionando biblioteca glue
+if("glue" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("glue")
+}
+
+# Adicionando biblioteca knitr
+if("knitr" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("knitr")
+}
+
+# Adicionando biblioteca kableExtra
+if("kableExtra" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("kableExtra")
+}
+
+# Adicionando biblioteca mongolite
+if ("mongolite" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("mongolite")
+}
+
+# Adicionando biblioteca jsonlite
+if ("jsonlite" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("jsonlite")
+}
+```
+
+
+```{r, message=FALSE, warning=FALSE,  results='hide'}
+library(GetDFPData)
+library(tidyverse)
+library(glue)
+library(knitr)
+library(kableExtra)
+library(mongolite)
+library(jsonlite)
+
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+# getCompanies <- function() {
+#   # Conecta no banco de dados
+#   print("Conectando no banco de dados MongoDB na nuvem")
+#   db <- mongo("companies", url = "mongodb+srv://qalef:qal3fqal3f@qalefdb0-un7mk.mongodb.net/financefun?retryWrites=true&w=majority")
+#   print("Conexão realizada com sucesso")
+#   
+#   companies = db$find()  
+#   return(companies)
+# }
+
+getCompanies <- function() {
+  companies <- read.csv("companies-to-import.csv", header = TRUE, sep = ";")
+  return(companies)
+}
+
+companies <- getCompanies()
+
+
+for(i in 1:nrow(companies)) {
+  company <- companies[i,]
+  companyName <- company$companyName
+  
+  my.companies <- companyName
+  first.date <- '2007-01-01'
+  last.date  <- '2018-12-31'
+  
+  #Importando os dados da Grendene
+  df.reports <- gdfpd.GetDFPData( name.companies = my.companies, 
+                                  first.date = first.date,
+                                  last.date = last.date)
+  
+  df.reports$id = df.reports$company.code
+  # db$insert(df.reports)
+}
+  
+
+```
+
+
+
+```{r, message=FALSE, warning=FALSE,  results='hide'}
+#Visualizando as informações disponiveis
+glimpse(df.reports)
+```
+
+```{r, message=FALSE, warning=FALSE,  results='hide'}
+# Extraindo as informações sobre acionistas
+acionistas <- df.reports$current.stockholders[[1]]
+acionistas <- acionistas[,c(1,3,4,5,6)]
+names(acionistas) <- c("empresa", "Acionista", "% ON", "%PN", "% Total")
+acionistas
+```
+
+
+
+
+```{r, message=FALSE, warning=FALSE,  results='hide'}
+# Extraindo as informações sobre Receita Bruta
+RE <- df.reports$fr.income[[1]]
+RE <- RE[RE$acc.desc == "Receita de Venda de Bens e/ou Serviços
+",]
+
+# Extraindo as informações sobre Lucro Liquido
+LU <- df.reports$fr.income[[1]]
+LU <- LU[LU$acc.desc == "Lucro/Prejuízo do Período",]
+
+# Extraindo as informações sobre Ativo total
+AT <- df.reports$fr.assets[[1]]
+AT <- AT[AT$acc.desc == "Ativo Total",]
+
+# Extraindo as informações sobre Ativo Circulante
+AC <- df.reports$fr.assets[[1]]
+AC <- AC[AC$acc.desc == "Ativo Circulante",]
+
+# Extraindo as informações sobre Patrimonio Liquido
+PL <- df.reports$fr.liabilities[[1]]
+PL <- PL[PL$acc.desc == "Patrimônio Líquido",]
+
+# Extraindo as informações sobre Passivo circulante 
+PS <- df.reports$fr.liabilities[[1]]
+PS <- PS[PS$acc.desc == "Passivo Circulante",]
+
+
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+#visualizando as infomrações de uma tabela
+kable(acionistas)
+```
